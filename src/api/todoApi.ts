@@ -11,12 +11,12 @@ export const fetchTodos = async (userId: number) => {
 };
 
 export const addTodo = async (todo: { title: string; userId: number }) => {
-  const response = await fetch(`${BASE_URL}/todos?userId=${todo.userId}`, {
+  const response = await fetch(`${BASE_URL}/todos`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify(todo),
+    body: JSON.stringify({ ...todo, completed: false }),
   });
 
   if (!response.ok) {

@@ -21,6 +21,7 @@ export const App: React.FC = () => {
   const [newTitle, setNewTitle] = useState<string>('');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [isInputDesavled, setIsInputDesavled] = useState(false);
 
   const inputRef = useRef<HTMLInputElement | null>(null);
 
@@ -48,6 +49,12 @@ export const App: React.FC = () => {
 
     return () => clearTimeout(timer);
   }, [errorMessage]);
+
+  useEffect(() => {
+    if (newTodo.trim() === '') {
+      inputRef.current?.focus();
+    }
+  }, [newTodo]);
 
   const handleEditTodo = (todo: Todo) => {
     setEditingTodoId(todo.id);
@@ -106,6 +113,7 @@ export const App: React.FC = () => {
     }
 
     setLoading(true);
+    setIsInputDesavled(true);
 
     try {
       const newTodoData = await addTodo({ title: newTodo, userId: USER_ID });
@@ -117,6 +125,7 @@ export const App: React.FC = () => {
       setErrorMessage('Unable to add a todo');
     } finally {
       setLoading(false);
+      setIsInputDesavled(false);
     }
   };
 
@@ -168,12 +177,14 @@ export const App: React.FC = () => {
           ></button>
           <form onSubmit={handleAddTodo}>
             <input
+              ref={inputRef}
               data-cy="NewTodoField"
               type="text"
               className="todoapp__new-todo"
               placeholder="What needs to be done?"
               value={newTodo}
               onChange={handleNewTodoChange}
+              disabled={isInputDesavled}
             />
           </form>
         </header>
@@ -264,6 +275,7 @@ export const App: React.FC = () => {
             </span>
             <nav className="filter" data-cy="Filter">
               <a
+                data-cy="FilterLinkAll"
                 href="#/"
                 className={`filter__link ${filter === 'all' ? 'selected' : ''}`}
                 onClick={() => setFilter('all')}
@@ -271,6 +283,7 @@ export const App: React.FC = () => {
                 All
               </a>
               <a
+                data-cy="FilterLinkActive"
                 href="#/active"
                 className={`filter__link ${filter === 'active' ? 'selected' : ''}`}
                 onClick={() => setFilter('active')}
@@ -278,6 +291,7 @@ export const App: React.FC = () => {
                 Active
               </a>
               <a
+                data-cy="FilterLinkCompleted"
                 href="#/completed"
                 className={`filter__link ${filter === 'completed' ? 'selected' : ''}`}
                 onClick={() => setFilter('completed')}
