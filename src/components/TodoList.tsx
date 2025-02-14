@@ -13,6 +13,9 @@ interface TodoListProps {
   onDeleteTodo: (id: number) => void;
   onSaveTitle: (id: number) => void;
   onChangeNewTitle: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  deletingTodoIds: number[];
+  tempTodo?: Todo | null;
+  updatingTodoId: number | null;
 }
 
 export const TodoList: React.FC<TodoListProps> = ({
@@ -21,12 +24,14 @@ export const TodoList: React.FC<TodoListProps> = ({
   editingTodoId,
   newTitle,
   inputRef,
-  loading,
   onToggleTodo,
   onEditTodo,
   onDeleteTodo,
   onSaveTitle,
   onChangeNewTitle,
+  deletingTodoIds,
+  tempTodo,
+  updatingTodoId,
 }) => {
   const filteredTodos = todos.filter(todo => {
     if (filter === 'active') {
@@ -40,11 +45,19 @@ export const TodoList: React.FC<TodoListProps> = ({
     return true;
   });
 
+  if (tempTodo && (filter === 'all' || filter === 'active')) {
+    filteredTodos.push(tempTodo);
+  }
+
   return (
     <section className="todo__main" data-cy="TodoList">
       <div>
         {filteredTodos.map(todo => {
           const isEditing = editingTodoId === todo.id;
+          const isLoading =
+            (tempTodo && todo.id === tempTodo.id) ||
+            deletingTodoIds.includes(todo.id) ||
+            updatingTodoId === todo.id;
 
           return (
             <TodoItem
@@ -53,7 +66,7 @@ export const TodoList: React.FC<TodoListProps> = ({
               isEditing={isEditing}
               newTitle={newTitle}
               inputRef={inputRef}
-              loading={loading}
+              loading={isLoading}
               onToggle={() => onToggleTodo(todo.id)}
               onEdit={() => onEditTodo(todo)}
               onChange={onChangeNewTitle}
@@ -70,6 +83,7 @@ export const TodoList: React.FC<TodoListProps> = ({
                 }
               }}
               onDelete={() => onDeleteTodo(todo.id)}
+              disabled={isEditing && updatingTodoId === todo.id}
             />
           );
         })}

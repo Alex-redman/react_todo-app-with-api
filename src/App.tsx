@@ -1,4 +1,3 @@
-// src/App.tsx
 import React, { useEffect, useRef, useState } from 'react';
 import { UserWarning } from './UserWarning';
 import { fetchTodos, addTodo, updateTodo, deleteTodo } from './api/todoApi';
@@ -18,6 +17,9 @@ export const App: React.FC = () => {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [isInputDisabled, setIsInputDisabled] = useState(false);
+  const [deletingTodoIds, setDeletindTodo] = useState<number[]>([]);
+  const [tempTodo, setTempTodo] = useState<Todo | null>(null);
+  const [updatingTodoId, setUpdatingTodoId] = useState<number | null>(null);
 
   const inputRef = useRef<HTMLInputElement | null>(null);
 
@@ -55,7 +57,6 @@ export const App: React.FC = () => {
   const handleEditTodo = (todo: Todo) => {
     setEditingTodoId(todo.id);
     setNewTitle(todo.title);
-
     setTimeout(() => {
       inputRef.current?.focus();
     }, 0);
@@ -68,8 +69,8 @@ export const App: React.FC = () => {
       return;
     }
 
+    setUpdatingTodoId(id);
     setLoading(true);
-
     try {
       const existingTodo = todos.find(todo => todo.id === id);
 
@@ -90,6 +91,8 @@ export const App: React.FC = () => {
       setErrorMessage('Unable to update a todo');
     } finally {
       setLoading(false);
+      setUpdatingTodoId(null);
+      setTimeout(() => inputRef.current?.focus(), 0);
     }
   };
 
@@ -106,9 +109,15 @@ export const App: React.FC = () => {
       return;
     }
 
+    const tempTodoData: Todo = {
+      id: Date.now(),
+      title: newTodo,
+      completed: false,
+    };
+
+    setTempTodo(tempTodoData);
     setLoading(true);
     setIsInputDisabled(true);
-
     try {
       const newTodoData = await addTodo({ title: newTodo, userId: USER_ID });
 
@@ -120,6 +129,8 @@ export const App: React.FC = () => {
     } finally {
       setLoading(false);
       setIsInputDisabled(false);
+      setTempTodo(null);
+      setTimeout(() => inputRef.current?.focus(), 0);
     }
   };
 
@@ -132,15 +143,16 @@ export const App: React.FC = () => {
   };
 
   const handleDeleteTodo = async (id: number) => {
-    setLoading(true);
+    setDeletindTodo(prev => [...prev, id]);
     try {
       await deleteTodo(id);
-      setTodos(todos.filter(todo => todo.id !== id));
+      setTodos(prev => prev.filter(todo => todo.id !== id));
       setErrorMessage(null);
     } catch (error) {
       setErrorMessage('Unable to delete a todo');
     } finally {
-      setLoading(false);
+      setDeletindTodo(prev => prev.filter(todoId => todoId !== id));
+      setTimeout(() => inputRef.current?.focus(), 0);
     }
   };
 
@@ -182,6 +194,9 @@ export const App: React.FC = () => {
           onDeleteTodo={handleDeleteTodo}
           onSaveTitle={handleSaveTitle}
           onChangeNewTitle={e => setNewTitle(e.target.value)}
+          deletingTodoIds={deletingTodoIds}
+          tempTodo={tempTodo}
+          updatingTodoId={updatingTodoId}
         />
         {todos.length > 0 && (
           <Footer
@@ -194,7 +209,9 @@ export const App: React.FC = () => {
       </div>
       <div
         data-cy="ErrorNotification"
-        className={`notification is-danger is-light has-text-weight-normal ${errorMessage ? '' : 'hidden'}`}
+        className={`notification is-danger is-light has-text-weight-normal ${
+          errorMessage ? '' : 'hidden'
+        }`}
       >
         {errorMessage}
         <button

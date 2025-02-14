@@ -13,6 +13,7 @@ interface TodoItemProps {
   newTitle: string;
   inputRef: React.RefObject<HTMLInputElement>;
   loading: boolean;
+  disabled: boolean;
   onToggle: () => void;
   onEdit: () => void;
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
@@ -27,6 +28,7 @@ export const TodoItem: React.FC<TodoItemProps> = ({
   newTitle,
   inputRef,
   loading,
+  disabled,
   onToggle,
   onEdit,
   onChange,
@@ -43,19 +45,23 @@ export const TodoItem: React.FC<TodoItemProps> = ({
           className="todo__status"
           checked={todo.completed}
           onChange={onToggle}
+          disabled={disabled}
         />
       </label>
       {isEditing ? (
-        <input
-          ref={inputRef}
-          type="text"
-          className="todo__title-field"
-          placeholder="Empty todo will be deleted"
-          value={newTitle}
-          onChange={onChange}
-          onBlur={onBlur}
-          onKeyDown={onKeyDown}
-        />
+        <form>
+          <input
+            ref={inputRef}
+            type="text"
+            className="todo__title-field"
+            placeholder="Empty todo will be deleted"
+            value={newTitle}
+            onChange={onChange}
+            onBlur={onBlur}
+            onKeyDown={onKeyDown}
+            disabled={disabled}
+          />
+        </form>
       ) : (
         <>
           <span
@@ -70,6 +76,7 @@ export const TodoItem: React.FC<TodoItemProps> = ({
             className="todo__remove"
             data-cy="TodoDelete"
             onClick={onDelete}
+            disabled={disabled}
           >
             x
           </button>
