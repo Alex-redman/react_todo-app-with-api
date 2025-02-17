@@ -49,7 +49,11 @@ export const TodoItem: React.FC<TodoItemProps> = ({
         />
       </label>
       {isEditing ? (
-        <form>
+        <form
+          onSubmit={e => {
+            e.preventDefault();
+          }}
+        >
           <input
             ref={inputRef}
             type="text"

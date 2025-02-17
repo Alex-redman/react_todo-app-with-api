@@ -16,6 +16,7 @@ interface TodoListProps {
   deletingTodoIds: number[];
   tempTodo?: Todo | null;
   updatingTodoId: number | null;
+  batchUpdatingIds: number[];
 }
 
 export const TodoList: React.FC<TodoListProps> = ({
@@ -32,6 +33,7 @@ export const TodoList: React.FC<TodoListProps> = ({
   deletingTodoIds,
   tempTodo,
   updatingTodoId,
+  batchUpdatingIds,
 }) => {
   const filteredTodos = todos.filter(todo => {
     if (filter === 'active') {
@@ -57,7 +59,8 @@ export const TodoList: React.FC<TodoListProps> = ({
           const isLoading =
             (tempTodo && todo.id === tempTodo.id) ||
             deletingTodoIds.includes(todo.id) ||
-            updatingTodoId === todo.id;
+            updatingTodoId === todo.id ||
+            batchUpdatingIds.includes(todo.id);
 
           return (
             <TodoItem
@@ -67,8 +70,12 @@ export const TodoList: React.FC<TodoListProps> = ({
               newTitle={newTitle}
               inputRef={inputRef}
               loading={isLoading}
-              onToggle={() => onToggleTodo(todo.id)}
-              onEdit={() => onEditTodo(todo)}
+              onToggle={() => {
+                return onToggleTodo(todo.id);
+              }}
+              onEdit={() => {
+                return onEditTodo(todo);
+              }}
               onChange={onChangeNewTitle}
               onBlur={() => {
                 if (newTitle.trim() === '') {
@@ -82,7 +89,9 @@ export const TodoList: React.FC<TodoListProps> = ({
                   onSaveTitle(todo.id);
                 }
               }}
-              onDelete={() => onDeleteTodo(todo.id)}
+              onDelete={() => {
+                return onDeleteTodo(todo.id);
+              }}
               disabled={isEditing && updatingTodoId === todo.id}
             />
           );

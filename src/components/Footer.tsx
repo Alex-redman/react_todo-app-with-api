@@ -14,7 +14,9 @@ export const Footer: React.FC<FooterProps> = ({
   onFilterChange,
   onClearCompleted,
 }) => {
-  const activeTodosCount = todos.filter(todo => !todo.completed).length;
+  const activeTodosCount = todos.filter(todo => {
+    return !todo.completed;
+  }).length;
 
   return (
     <footer className="todoapp__footer" data-cy="Footer">
@@ -26,7 +28,9 @@ export const Footer: React.FC<FooterProps> = ({
           data-cy="FilterLinkAll"
           href="#/"
           className={`filter__link ${filter === 'all' ? 'selected' : ''}`}
-          onClick={() => onFilterChange('all')}
+          onClick={() => {
+            return onFilterChange('all');
+          }}
         >
           All
         </a>
@@ -34,7 +38,9 @@ export const Footer: React.FC<FooterProps> = ({
           data-cy="FilterLinkActive"
           href="#/active"
           className={`filter__link ${filter === 'active' ? 'selected' : ''}`}
-          onClick={() => onFilterChange('active')}
+          onClick={() => {
+            return onFilterChange('active');
+          }}
         >
           Active
         </a>
@@ -42,7 +48,9 @@ export const Footer: React.FC<FooterProps> = ({
           data-cy="FilterLinkCompleted"
           href="#/completed"
           className={`filter__link ${filter === 'completed' ? 'selected' : ''}`}
-          onClick={() => onFilterChange('completed')}
+          onClick={() => {
+            return onFilterChange('completed');
+          }}
         >
           Completed
         </a>
@@ -52,7 +60,11 @@ export const Footer: React.FC<FooterProps> = ({
         type="button"
         className="todoapp__clear-completed"
         onClick={onClearCompleted}
-        disabled={!todos.some(todo => todo.completed)}
+        disabled={
+          !todos.some(todo => {
+            return todo.completed;
+          })
+        }
       >
         Clear completed
       </button>

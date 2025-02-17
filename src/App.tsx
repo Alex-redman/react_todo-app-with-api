@@ -20,6 +20,7 @@ export const App: React.FC = () => {
   const [deletingTodoIds, setDeletindTodo] = useState<number[]>([]);
   const [tempTodo, setTempTodo] = useState<Todo | null>(null);
   const [updatingTodoId, setUpdatingTodoId] = useState<number | null>(null);
+  const [batchUpdatingIds, setBatchUpdatingIds] = useState<number[]>([]);
 
   const inputRef = useRef<HTMLInputElement | null>(null);
 
@@ -45,12 +46,16 @@ export const App: React.FC = () => {
       setErrorMessage(null);
     }, 4000);
 
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(timer);
+    };
   }, [errorMessage]);
 
   useEffect(() => {
     if (newTodo.trim() === '') {
-      inputRef.current?.focus();
+      if (inputRef.current) {
+        inputRef.current.focus();
+      }
     }
   }, [newTodo]);
 
@@ -58,7 +63,9 @@ export const App: React.FC = () => {
     setEditingTodoId(todo.id);
     setNewTitle(todo.title);
     setTimeout(() => {
-      inputRef.current?.focus();
+      if (inputRef.current) {
+        inputRef.current.focus();
+      }
     }, 0);
   };
 
@@ -69,21 +76,38 @@ export const App: React.FC = () => {
       return;
     }
 
+    const existingTodo = todos.find(todo => {
+      return todo.id === id;
+    });
+
+    if (!existingTodo) {
+      return;
+    }
+
+    if (newTitle.trim() === existingTodo.title) {
+      setEditingTodoId(null);
+      setNewTitle('');
+
+      return;
+    }
+
     setUpdatingTodoId(id);
     setLoading(true);
     try {
-      const existingTodo = todos.find(todo => todo.id === id);
-
-      if (!existingTodo) {
-        return;
-      }
-
       const updatedTodo = await updateTodo(id, {
         title: newTitle,
         completed: existingTodo.completed,
       });
 
-      setTodos(todos.map(todo => (todo.id === id ? updatedTodo : todo)));
+      setTodos(
+        todos.map(todo => {
+          if (todo.id === id) {
+            return updatedTodo;
+          } else {
+            return todo;
+          }
+        }),
+      );
       setEditingTodoId(null);
       setNewTitle('');
       setErrorMessage(null);
@@ -92,7 +116,11 @@ export const App: React.FC = () => {
     } finally {
       setLoading(false);
       setUpdatingTodoId(null);
-      setTimeout(() => inputRef.current?.focus(), 0);
+      setTimeout(() => {
+        if (inputRef.current) {
+          inputRef.current.focus();
+        }
+      }, 0);
     }
   };
 
@@ -130,40 +158,124 @@ export const App: React.FC = () => {
       setLoading(false);
       setIsInputDisabled(false);
       setTempTodo(null);
-      setTimeout(() => inputRef.current?.focus(), 0);
+      setTimeout(() => {
+        if (inputRef.current) {
+          inputRef.current.focus();
+        }
+      }, 0);
     }
   };
 
   const handleToggleTodo = (id: number) => {
     setTodos(
-      todos.map(todo =>
-        todo.id === id ? { ...todo, completed: !todo.completed } : todo,
-      ),
+      todos.map(todo => {
+        if (todo.id === id) {
+          return { ...todo, completed: !todo.completed };
+        } else {
+          return todo;
+        }
+      }),
     );
   };
 
   const handleDeleteTodo = async (id: number) => {
-    setDeletindTodo(prev => [...prev, id]);
+    setDeletindTodo(prev => {
+      return [...prev, id];
+    });
     try {
       await deleteTodo(id);
-      setTodos(prev => prev.filter(todo => todo.id !== id));
+      setTodos(prev => {
+        return prev.filter(todo => {
+          return todo.id !== id;
+        });
+      });
       setErrorMessage(null);
     } catch (error) {
       setErrorMessage('Unable to delete a todo');
     } finally {
-      setDeletindTodo(prev => prev.filter(todoId => todoId !== id));
-      setTimeout(() => inputRef.current?.focus(), 0);
+      setDeletindTodo(prev => {
+        return prev.filter(todoId => {
+          return todoId !== id;
+        });
+      });
+      setTimeout(() => {
+        if (inputRef.current) {
+          inputRef.current.focus();
+        }
+      }, 0);
     }
   };
 
-  const handleClearCompleted = () => {
-    setTodos(todos.filter(todo => !todo.completed));
+  const handleClearCompleted = async () => {
+    const completedTodos = todos.filter(todo => {
+      return todo.completed;
+    });
+
+    setDeletindTodo(
+      completedTodos.map(todo => {
+        return todo.id;
+      }),
+    );
+    try {
+      await Promise.all(
+        completedTodos.map(todo => {
+          return deleteTodo(todo.id);
+        }),
+      );
+      setTodos(
+        todos.filter(todo => {
+          return !todo.completed;
+        }),
+      );
+    } catch (error) {
+      setErrorMessage('Unable to clear completed todos');
+    } finally {
+      setDeletindTodo([]);
+    }
   };
 
-  const handleToggleAll = () => {
-    const allCompleted = todos.every(todo => todo.completed);
+  const handleToggleAll = async () => {
+    const allCompleted = todos.every(todo => {
+      return todo.completed;
+    });
+    const todosToUpdate = todos.filter(todo => {
+      return todo.completed === allCompleted;
+    });
 
-    setTodos(todos.map(todo => ({ ...todo, completed: !allCompleted })));
+    setBatchUpdatingIds(
+      todosToUpdate.map(todo => {
+        return todo.id;
+      }),
+    );
+    try {
+      const updatedTodos = await Promise.all(
+        todosToUpdate.map(todo => {
+          return updateTodo(todo.id, {
+            title: todo.title,
+            completed: !allCompleted,
+          });
+        }),
+      );
+      const updatedMap = new Map(
+        updatedTodos.map(t => {
+          return [t.id, t];
+        }),
+      );
+
+      setTodos(
+        todos.map(todo => {
+          if (updatedMap.has(todo.id)) {
+            return updatedMap.get(todo.id)!;
+          } else {
+            return todo;
+          }
+        }),
+      );
+    } catch (error) {
+      setErrorMessage('Unable to toggle all todos');
+    } finally {
+      setBatchUpdatingIds([]);
+    }
   };
 
   if (!USER_ID) {
@@ -193,10 +305,13 @@ export const App: React.FC = () => {
           onEditTodo={handleEditTodo}
           onDeleteTodo={handleDeleteTodo}
           onSaveTitle={handleSaveTitle}
-          onChangeNewTitle={e => setNewTitle(e.target.value)}
+          onChangeNewTitle={e => {
+            return setNewTitle(e.target.value);
+          }}
           deletingTodoIds={deletingTodoIds}
           tempTodo={tempTodo}
           updatingTodoId={updatingTodoId}
+          batchUpdatingIds={batchUpdatingIds}
         />
         {todos.length > 0 && (
           <Footer
@@ -218,7 +333,9 @@ export const App: React.FC = () => {
           data-cy="HideErrorButton"
           type="button"
           className="delete"
-          onClick={() => setErrorMessage(null)}
+          onClick={() => {
+            return setErrorMessage(null);
+          }}
         ></button>
       </div>
     </div>
