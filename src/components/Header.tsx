@@ -1,15 +1,16 @@
 import React from 'react';
 
-interface HeaderProp {
+interface HeaderProps {
   newTodo: string;
   isInputDisabled: boolean;
   onTodoChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
   onAddTodo: (event: React.FormEvent<HTMLFormElement>) => void;
   onToggleAll: () => void;
   inputRef: React.RefObject<HTMLInputElement>;
+  isAdding: boolean;
 }
 
-export const Header: React.FC<HeaderProp> = ({
+export const Header: React.FC<HeaderProps> = ({
   newTodo,
   isInputDisabled,
   onTodoChange,

@@ -1,10 +1,16 @@
 import React from 'react';
 import { Todo } from './TodoItem';
 
+export enum FilterOptions {
+  All = 'all',
+  Active = 'active',
+  Completed = 'completed',
+}
+
 interface FooterProps {
   todos: Todo[];
-  filter: string;
-  onFilterChange: (filter: string) => void;
+  filter: FilterOptions;
+  onFilterChange: (filter: FilterOptions) => void;
   onClearCompleted: () => void;
 }
 
@@ -18,42 +24,33 @@ export const Footer: React.FC<FooterProps> = ({
     return !todo.completed;
   }).length;
 
+  const filters = [
+    { label: 'All', value: FilterOptions.All },
+    { label: 'Active', value: FilterOptions.Active },
+    { label: 'Completed', value: FilterOptions.Completed },
+  ];
+
   return (
     <footer className="todoapp__footer" data-cy="Footer">
       <span className="todo-count" data-cy="TodosCounter">
         {activeTodosCount} items left
       </span>
       <nav className="filter" data-cy="Filter">
-        <a
-          data-cy="FilterLinkAll"
-          href="#/"
-          className={`filter__link ${filter === 'all' ? 'selected' : ''}`}
-          onClick={() => {
-            return onFilterChange('all');
-          }}
-        >
-          All
-        </a>
-        <a
-          data-cy="FilterLinkActive"
-          href="#/active"
-          className={`filter__link ${filter === 'active' ? 'selected' : ''}`}
-          onClick={() => {
-            return onFilterChange('active');
-          }}
-        >
-          Active
-        </a>
-        <a
-          data-cy="FilterLinkCompleted"
-          href="#/completed"
-          className={`filter__link ${filter === 'completed' ? 'selected' : ''}`}
-          onClick={() => {
-            return onFilterChange('completed');
-          }}
-        >
-          Completed
-        </a>
+        {filters.map(({ label, value }) => {
+          return (
+            <a
+              key={value}
+              data-cy={`FilterLink${label}`}
+              href={`#/${value === FilterOptions.All ? '' : value}`}
+              className={`filter__link ${filter === value ? 'selected' : ''}`}
+              onClick={() => {
+                onFilterChange(value);
+              }}
+            >
+              {label}
+            </a>
+          );
+        })}
       </nav>
       <button
         data-cy="ClearCompletedButton"

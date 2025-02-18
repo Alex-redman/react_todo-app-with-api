@@ -1,100 +1,100 @@
 import React from 'react';
 import { Todo, TodoItem } from './TodoItem';
 
-interface TodoListProps {
-  todos: Todo[];
-  filter: string;
+interface EditingProps {
   editingTodoId: number | null;
   newTitle: string;
   inputRef: React.RefObject<HTMLInputElement>;
-  loading: boolean;
+}
+
+interface Handlers {
   onToggleTodo: (id: number) => void;
   onEditTodo: (todo: Todo) => void;
   onDeleteTodo: (id: number) => void;
   onSaveTitle: (id: number) => void;
   onChangeNewTitle: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  deletingTodoIds: number[];
+}
+
+interface TodoListProps {
+  todos: Todo[];
   tempTodo?: Todo | null;
+  loading: boolean;
+  deletingTodoIds: number[];
   updatingTodoId: number | null;
   batchUpdatingIds: number[];
+  editing: EditingProps;
+  handlers: Handlers;
 }
 
 export const TodoList: React.FC<TodoListProps> = ({
   todos,
-  filter,
-  editingTodoId,
-  newTitle,
-  inputRef,
-  onToggleTodo,
-  onEditTodo,
-  onDeleteTodo,
-  onSaveTitle,
-  onChangeNewTitle,
+  tempTodo = null,
   deletingTodoIds,
-  tempTodo,
   updatingTodoId,
   batchUpdatingIds,
+  editing,
+  handlers,
 }) => {
-  const filteredTodos = todos.filter(todo => {
-    if (filter === 'active') {
-      return !todo.completed;
-    }
+  const renderTodoItem = (todo: Todo) => {
+    const isTemp = tempTodo !== null && todo.id === tempTodo.id;
+    const isLoading =
+      isTemp ||
+      deletingTodoIds.includes(todo.id) ||
+      updatingTodoId === todo.id ||
+      batchUpdatingIds.includes(todo.id);
 
-    if (filter === 'completed') {
-      return todo.completed;
-    }
+    const handleToggle = () => {
+      handlers.onToggleTodo(todo.id);
+    };
 
-    return true;
-  });
+    const handleEdit = () => {
+      handlers.onEditTodo(todo);
+    };
 
-  if (tempTodo && (filter === 'all' || filter === 'active')) {
-    filteredTodos.push(tempTodo);
-  }
+    const handleDelete = () => {
+      handlers.onDeleteTodo(todo.id);
+    };
+
+    const handleBlur = () => {
+      if (editing.newTitle.trim() === '') {
+        handlers.onDeleteTodo(todo.id);
+      } else {
+        handlers.onSaveTitle(todo.id);
+      }
+    };
+
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+      if (e.key === 'Enter') {
+        handlers.onSaveTitle(todo.id);
+      }
+    };
+
+    return (
+      <TodoItem
+        key={todo.id}
+        todo={todo}
+        isEditing={editing.editingTodoId === todo.id}
+        newTitle={editing.newTitle}
+        inputRef={editing.inputRef}
+        loading={isLoading}
+        onToggle={handleToggle}
+        onEdit={handleEdit}
+        onChange={handlers.onChangeNewTitle}
+        onBlur={handleBlur}
+        onKeyDown={handleKeyDown}
+        onDelete={handleDelete}
+        disabled={
+          editing.editingTodoId === todo.id && updatingTodoId === todo.id
+        }
+      />
+    );
+  };
 
   return (
     <section className="todo__main" data-cy="TodoList">
       <div>
-        {filteredTodos.map(todo => {
-          const isEditing = editingTodoId === todo.id;
-          const isLoading =
-            (tempTodo && todo.id === tempTodo.id) ||
-            deletingTodoIds.includes(todo.id) ||
-            updatingTodoId === todo.id ||
-            batchUpdatingIds.includes(todo.id);
-
-          return (
-            <TodoItem
-              key={todo.id}
-              todo={todo}
-              isEditing={isEditing}
-              newTitle={newTitle}
-              inputRef={inputRef}
-              loading={isLoading}
-              onToggle={() => {
-                return onToggleTodo(todo.id);
-              }}
-              onEdit={() => {
-                return onEditTodo(todo);
-              }}
-              onChange={onChangeNewTitle}
-              onBlur={() => {
-                if (newTitle.trim() === '') {
-                  onDeleteTodo(todo.id);
-                } else {
-                  onSaveTitle(todo.id);
-                }
-              }}
-              onKeyDown={e => {
-                if (e.key === 'Enter') {
-                  onSaveTitle(todo.id);
-                }
-              }}
-              onDelete={() => {
-                return onDeleteTodo(todo.id);
-              }}
-              disabled={isEditing && updatingTodoId === todo.id}
-            />
-          );
+        {todos.map(todo => {
+          return renderTodoItem(todo);
         })}
       </div>
     </section>

@@ -3,7 +3,7 @@ import { UserWarning } from './UserWarning';
 import { fetchTodos, addTodo, updateTodo, deleteTodo } from './api/todoApi';
 import { Header } from './components/Header';
 import { TodoList } from './components/TodoList';
-import { Footer } from './components/Footer';
+import { Footer, FilterOptions } from './components/Footer';
 import { Todo } from './components/TodoItem';
 
 const USER_ID = 2311;
@@ -11,16 +11,17 @@ const USER_ID = 2311;
 export const App: React.FC = () => {
   const [todos, setTodos] = useState<Todo[]>([]);
   const [newTodo, setNewTodo] = useState('');
-  const [filter, setFilter] = useState('all');
+  const [filter, setFilter] = useState<FilterOptions>(FilterOptions.All);
   const [editingTodoId, setEditingTodoId] = useState<number | null>(null);
   const [newTitle, setNewTitle] = useState('');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [isInputDisabled, setIsInputDisabled] = useState(false);
-  const [deletingTodoIds, setDeletindTodo] = useState<number[]>([]);
+  const [deletingTodoIds, setDeletingTodoIds] = useState<number[]>([]);
   const [tempTodo, setTempTodo] = useState<Todo | null>(null);
   const [updatingTodoId, setUpdatingTodoId] = useState<number | null>(null);
   const [batchUpdatingIds, setBatchUpdatingIds] = useState<number[]>([]);
+  const [isAdding, setIsAdding] = useState(false);
 
   const inputRef = useRef<HTMLInputElement | null>(null);
 
@@ -144,7 +145,7 @@ export const App: React.FC = () => {
     };
 
     setTempTodo(tempTodoData);
-    setLoading(true);
+    setIsAdding(true);
     setIsInputDisabled(true);
     try {
       const newTodoData = await addTodo({ title: newTodo, userId: USER_ID });
@@ -155,7 +156,7 @@ export const App: React.FC = () => {
     } catch (error) {
       setErrorMessage('Unable to add a todo');
     } finally {
-      setLoading(false);
+      setIsAdding(false);
       setIsInputDisabled(false);
       setTempTodo(null);
       setTimeout(() => {
@@ -166,20 +167,42 @@ export const App: React.FC = () => {
     }
   };
 
-  const handleToggleTodo = (id: number) => {
-    setTodos(
-      todos.map(todo => {
-        if (todo.id === id) {
-          return { ...todo, completed: !todo.completed };
-        } else {
-          return todo;
-        }
-      }),
-    );
+  const handleToggleTodo = async (id: number) => {
+    const todoToUpdate = todos.find(todo => {
+      return todo.id === id;
+    });
+
+    if (!todoToUpdate) {
+      return;
+    }
+
+    const newCompleted = !todoToUpdate.completed;
+
+    setUpdatingTodoId(id);
+    try {
+      const updatedTodo = await updateTodo(id, {
+        title: todoToUpdate.title,
+        completed: newCompleted,
+      });
+
+      setTodos(
+        todos.map(todo => {
+          if (todo.id === id) {
+            return updatedTodo;
+          } else {
+            return todo;
+          }
+        }),
+      );
+    } catch (error) {
+      setErrorMessage('Unable to update a todo');
+    } finally {
+      setUpdatingTodoId(null);
+    }
   };
 
   const handleDeleteTodo = async (id: number) => {
-    setDeletindTodo(prev => {
+    setDeletingTodoIds(prev => {
       return [...prev, id];
     });
     try {
@@ -193,7 +216,7 @@ export const App: React.FC = () => {
     } catch (error) {
       setErrorMessage('Unable to delete a todo');
     } finally {
-      setDeletindTodo(prev => {
+      setDeletingTodoIds(prev => {
         return prev.filter(todoId => {
           return todoId !== id;
         });
@@ -211,7 +234,7 @@ export const App: React.FC = () => {
       return todo.completed;
     });
 
-    setDeletindTodo(
+    setDeletingTodoIds(
       completedTodos.map(todo => {
         return todo.id;
       }),
@@ -230,7 +253,7 @@ export const App: React.FC = () => {
     } catch (error) {
       setErrorMessage('Unable to clear completed todos');
     } finally {
-      setDeletindTodo([]);
+      setDeletingTodoIds([]);
     }
   };
 
@@ -282,6 +305,25 @@ export const App: React.FC = () => {
     return <UserWarning />;
   }
 
+  const filteredTodos = todos.filter(todo => {
+    if (filter === FilterOptions.Active) {
+      return !todo.completed;
+    }
+
+    if (filter === FilterOptions.Completed) {
+      return todo.completed;
+    }
+
+    return true;
+  });
+
+  if (
+    tempTodo &&
+    (filter === FilterOptions.All || filter === FilterOptions.Active)
+  ) {
+    filteredTodos.push(tempTodo);
+  }
+
   return (
     <div className="todoapp">
       <h1 className="todoapp__title">todos</h1>
@@ -293,26 +335,31 @@ export const App: React.FC = () => {
           onAddTodo={handleAddTodo}
           inputRef={inputRef}
           onToggleAll={handleToggleAll}
+          isAdding={isAdding}
         />
         <TodoList
-          todos={todos}
-          filter={filter}
-          editingTodoId={editingTodoId}
-          newTitle={newTitle}
-          inputRef={inputRef}
-          loading={loading}
-          onToggleTodo={handleToggleTodo}
-          onEditTodo={handleEditTodo}
-          onDeleteTodo={handleDeleteTodo}
-          onSaveTitle={handleSaveTitle}
-          onChangeNewTitle={e => {
-            return setNewTitle(e.target.value);
-          }}
-          deletingTodoIds={deletingTodoIds}
+          todos={filteredTodos}
           tempTodo={tempTodo}
+          loading={loading}
+          deletingTodoIds={deletingTodoIds}
           updatingTodoId={updatingTodoId}
           batchUpdatingIds={batchUpdatingIds}
+          editing={{
+            editingTodoId: editingTodoId,
+            newTitle: newTitle,
+            inputRef: inputRef,
+          }}
+          handlers={{
+            onToggleTodo: handleToggleTodo,
+            onEditTodo: handleEditTodo,
+            onDeleteTodo: handleDeleteTodo,
+            onSaveTitle: handleSaveTitle,
+            onChangeNewTitle: e => {
+              setNewTitle(e.target.value);
+            },
+          }}
         />
+
         {todos.length > 0 && (
           <Footer
             todos={todos}
@@ -324,9 +371,7 @@ export const App: React.FC = () => {
       </div>
       <div
         data-cy="ErrorNotification"
-        className={`notification is-danger is-light has-text-weight-normal ${
-          errorMessage ? '' : 'hidden'
-        }`}
+        className={`notification is-danger is-light has-text-weight-normal ${errorMessage ? '' : 'hidden'}`}
       >
         {errorMessage}
         <button
@@ -334,7 +379,7 @@ export const App: React.FC = () => {
           type="button"
           className="delete"
           onClick={() => {
-            return setErrorMessage(null);
+            setErrorMessage(null);
           }}
         ></button>
       </div>
