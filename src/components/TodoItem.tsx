@@ -1,4 +1,5 @@
 /* eslint-disable jsx-a11y/label-has-associated-control */
+import classNames from 'classnames';
 import React from 'react';
 
 export interface Todo {
@@ -37,7 +38,10 @@ export const TodoItem: React.FC<TodoItemProps> = ({
   onDelete,
 }) => {
   return (
-    <div className={`todo ${todo.completed ? 'completed' : ''}`} data-cy="Todo">
+    <div
+      className={classNames('todo', { completed: todo.completed })}
+      data-cy="Todo"
+    >
       <label className="todo__status-label">
         <input
           type="checkbox"

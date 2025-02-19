@@ -5,6 +5,7 @@ import { Header } from './components/Header';
 import { TodoList } from './components/TodoList';
 import { Footer, FilterOptions } from './components/Footer';
 import { Todo } from './components/TodoItem';
+import classNames from 'classnames';
 
 const USER_ID = 2311;
 
@@ -371,7 +372,10 @@ export const App: React.FC = () => {
       </div>
       <div
         data-cy="ErrorNotification"
-        className={`notification is-danger is-light has-text-weight-normal ${errorMessage ? '' : 'hidden'}`}
+        className={classNames(
+          'notification is-danger is-light has-text-weight-normal',
+          { hidden: !errorMessage },
+        )}
       >
         {errorMessage}
         <button
